@@ -1,0 +1,8 @@
+.gitignore
+.jshintignore
+.jshintrc
+.jscsrc
+.npmignore
+.sublime-project*
+test/
+coverage/

@@ -1,0 +1,15 @@
+.DS_store
+.DS_Store
+build
+
+.idea
+*.swo
+*.swp
+*.iml
+.fuse*
+.project
+node_modules
+artifacts
+npm-debug.log
+.editorconfig
+coverage/
