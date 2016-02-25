@@ -1,7 +1,7 @@
 {
-  "name": "hermione-allure-plugin",
+  "name": "hermione-allure-reporter",
   "version": "0.0.0",
-  "description": "Hermione plugin provides functiononality of Allure report",
+  "description": "Hermione plugin provides functionality of Allure report",
   "main": "index.js",
   "scripts": {
     "lint": "jshint . && jscs .",
@@ -16,10 +16,6 @@
     "hermione",
     "allure"
   ],
-  "bin": {
-    "e2e": "bin/hermione-allure-plugin"
-  },
-  "author": "search-interfaces@yandex-team.ru",
   "license": "MIT",
   "dependencies": {
     "allure-js-commons": "git://github.com/pazone/allure-js-commons.git#7b54fdb",

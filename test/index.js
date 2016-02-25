@@ -40,7 +40,7 @@ describe('Allure reporter', function() {
         mochaTestSuite.parent = rootSuite;
         mochaTestSuite.tests.push(mochaTest);
         mochaTest.parent = mochaTestSuite;
-        beforeHook.parent = rootSuite;
+        beforeHook.parent = mochaTestSuite;
 
         mochaTest2.parent = underlyingSuite;
         underlyingSuite.parent = topSuite;
@@ -96,13 +96,14 @@ describe('Allure reporter', function() {
             assert.equal(suites[0].testcases[0].status, 'broken', 'test should be broken');
         });
 
-        it('should break only nested tests on ERROR after execution', function() {
+        it('should save correct structure on ERROR after execution', function() {
             topSuite.parent = rootSuite;
             hermione.emit(hermione.events.SUITE_BEGIN, topSuite);
             hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
             hermione.emit(hermione.events.TEST_PASS, mochaTest2);
             hermione.emit(hermione.events.SUITE_END, topSuite);
             hermione.emit(hermione.events.ERROR, new Error('err'), beforeHook);
+            //console.log(suites);
             assert.lengthOf(suites, 2, 'both suites should be saved');
             assert.lengthOf(suites[0].testcases, 1, 'first test should be saved in first suite');
             assert.lengthOf(suites[1].testcases, 1, 'second test should be saved in second suite');
@@ -114,7 +115,7 @@ describe('Allure reporter', function() {
             assert.equal(suites[0].testcases[0].status, 'passed', 'test should be passed');
         });
 
-        it('should not break not broken tests on ERROR during execution', function() {
+        it('should save correct structure on ERROR during execution', function() {
             topSuite.parent = rootSuite;
             hermione.emit(hermione.events.SUITE_BEGIN, topSuite);
             hermione.emit(hermione.events.ERROR, new Error('err'), beforeHook);
@@ -134,13 +135,13 @@ describe('Allure reporter', function() {
     });
 
     describe('test', function() {
-        it('should be ignored if started without suite', function() {
+        it('should be ignored when started without suite', function() {
             hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
             hermione.emit(hermione.events.TEST_PASS, mochaTest2);
             assert.lengthOf(suites, 0);
         });
 
-        it('should not attached to wrong suite', function() {
+        it('should not be attached to wrong suite', function() {
             hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
             hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
             hermione.emit(hermione.events.TEST_PASS, mochaTest2);
@@ -149,7 +150,7 @@ describe('Allure reporter', function() {
             assert.lengthOf(suites[0].testcases, 0, 'suite should not contain any test');
         });
 
-        it('should can be attached to finished suite', function() {
+        it('should be attached to finished suite', function() {
             hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
             hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
             hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
@@ -158,7 +159,7 @@ describe('Allure reporter', function() {
             assert.lengthOf(suites[0].testcases, 0, 'suite should not contain any test');
         });
 
-        it('should not be duplicated on calling TEST_BEGIN twice', function() {
+        it('should not be duplicated on calling TEST_BEGIN twice with same data', function() {
             hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
             hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
             hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
@@ -167,7 +168,7 @@ describe('Allure reporter', function() {
             commonCaseVerification();
         });
 
-        it('should not be duplicated on calling TEST_PASS twice', function() {
+        it('should not be duplicated on calling TEST_PASS twice with same data', function() {
             hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
             hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
             hermione.emit(hermione.events.TEST_PASS, mochaTest);
@@ -176,7 +177,7 @@ describe('Allure reporter', function() {
             commonCaseVerification();
         });
 
-        it('should not pending on TEST_PENDING', function() {
+        it('should save proper structure and have pending status on TEST_PENDING', function() {
             hermione.emit(hermione.events.SUITE_BEGIN, topSuite);
             hermione.emit(hermione.events.TEST_PENDING, mochaTest2);
             hermione.emit(hermione.events.SUITE_END, topSuite);
