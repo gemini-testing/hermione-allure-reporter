@@ -20,8 +20,8 @@ module.exports = function(hermione, opts) {
             return;
         }
 
-        if (!_runningSuites.getRunningSuite(suite.title, suite.browserId)) {
-            _runningSuites.addRunningSuite(new AllureSuite(suite.title), suite.browserId);
+        if (!_runningSuites.getSuite(suite.title, suite.browserId)) {
+            _runningSuites.addSuite(new AllureSuite(suite.title), suite.browserId);
         }
     });
 
@@ -29,10 +29,10 @@ module.exports = function(hermione, opts) {
         if (!mochaUtils.isTopSuite(suite)) {
             return;
         }
-        var runningSuite = _runningSuites.getRunningSuite(suite.title, suite.browserId);
+        var runningSuite = _runningSuites.getSuite(suite.title, suite.browserId);
         if (runningSuite) {
             runningSuite.endSuite(targetDir);
-            _runningSuites.removeRunningSuite(suite.title, suite.browserId);
+            _runningSuites.removeSuite(suite.title, suite.browserId);
         }
     });
 
@@ -49,7 +49,7 @@ module.exports = function(hermione, opts) {
     });
 
     hermione.on(hermione.events.TEST_PENDING, function(test) {
-        var runningSuite = _runningSuites.getRunningSuiteByTest(test);
+        var runningSuite = _runningSuites.getSuiteByTest(test);
         runningSuite.addTest(test);
         runningSuite.finishTest(test, ALLURE_STATUS.pending, {message: 'Test ignored'});
     });

@@ -2,208 +2,300 @@
 
 var allureReporter = require('../index'),
     EventEmitter = require('events').EventEmitter,
-    MochaSuite = require('mocha/lib/suite'),
-    MochaTest = require('mocha/lib/test'),
-    MochaHook = require('mocha/lib/hook'),
     AllureSuite = require('allure-js-commons').Suite,
-    suites = [],
-    mochaTest,
-    rootSuite,
-    mochaTestSuite,
-    beforeHook,
-    mochaTest2,
-    topSuite,
-    rootSuite2,
-    underlyingSuite;
+    Tree = require('./suite-tree');
 
 describe('Allure reporter', function() {
     var sandbox = sinon.sandbox.create(),
+        hermione,
+        suites;
+
+    function initHermione_() {
         hermione = new EventEmitter();
+        hermione.events = require('hermione/lib/constants/runner-events');
+        allureReporter(hermione, {targetDir: 'allure-results'});
+    }
 
-    hermione.events = require('hermione/lib/constants/runner-events');
-    allureReporter(hermione, {targetDir: 'allure-results'});
+    beforeEach(function() {
+        initHermione_();
 
-    before(function() {
-        mochaTest = new MochaTest('test', function() {});
-        rootSuite = new MochaSuite('');
-        mochaTestSuite = MochaSuite.create(rootSuite, 'suite');
-        beforeHook = new MochaHook('before hook', function() {});
-        mochaTest2 = new MochaTest('test2', function() {});
-        topSuite = MochaSuite.create(rootSuite, 'topSuite');
-        rootSuite2 = new MochaSuite('');
-        underlyingSuite = MochaSuite.create(topSuite, 'suite2');
-
+        suites = [];
         sandbox.stub(AllureSuite.prototype, 'write', function() {
             suites.push(this);
         });
     });
 
-    beforeEach(function() {
-        mochaTestSuite.parent = rootSuite;
-        mochaTestSuite.tests = [mochaTest];
-        mochaTest.parent = mochaTestSuite;
-        beforeHook.parent = mochaTestSuite;
-
-        mochaTest2.parent = underlyingSuite;
-        underlyingSuite.parent = topSuite;
-        topSuite.parent = rootSuite2;
-        suites = [];
+    afterEach(function() {
+        sandbox.restore();
     });
 
     describe('suite', function() {
         it('should be saved with one test with correct names', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            commonCaseVerification();
-            assert.equal(suites[0].testcases[0].status, 'passed', 'test should be passed');
+            var tree = new Tree()
+                    .suite('topSuite')
+                        .test('someTest')
+                        .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.topSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.topSuite);
+
+            assert.lengthOf(suites, 1);
+            assert.lengthOf(suites[0].testcases, 1);
+            assert.equal(suites[0].name, 'topSuite');
+            assert.equal(suites[0].testcases[0].name, 'someTest');
+            assert.equal(suites[0].testcases[0].status, 'passed');
         });
 
         it('should be saved one test with correct names when it fails', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
-            hermione.emit(hermione.events.TEST_FAIL, mochaTest);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            commonCaseVerification();
-            assert.equal(suites[0].testcases[0].status, 'failed', 'test should be failed');
+            var tree = new Tree()
+                    .suite('topSuite')
+                        .test('someTest')
+                        .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.topSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_FAIL, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.topSuite);
+
+            assert.lengthOf(suites, 1);
+            assert.lengthOf(suites[0].testcases, 1);
+            assert.equal(suites[0].name, 'topSuite');
+            assert.equal(suites[0].testcases[0].name, 'someTest');
+            assert.equal(suites[0].testcases[0].status, 'failed');
         });
 
         it('should not be duplicated on calling SUITE_BEGIN twice', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            assert.lengthOf(suites, 1, '1 suite should be saved');
+            var tree = new Tree()
+                    .suite('someSuite')
+                    .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+
+            assert.lengthOf(suites, 1);
         });
 
         it('should not be duplicated on calling SUITE_END twice', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            assert.lengthOf(suites, 1, '1 suite should be saved');
+            var tree = new Tree()
+                    .suite('someSuite')
+                    .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+
+            assert.lengthOf(suites, 1);
         });
 
         it('should be ignored if it is not top level suite', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, underlyingSuite);
-            hermione.emit(hermione.events.SUITE_END, underlyingSuite);
+            var tree = new Tree()
+                    .suite('topSuite')
+                        .suite('middleSuite')
+                        .end()
+                    .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.middleSuite);
+            hermione.emit(hermione.events.SUITE_END, tree.middleSuite);
+
             assert.lengthOf(suites, 0);
         });
 
         it('should break all nested tests on ERROR', function() {
-            // Прикрепляем второй тест к сьюту
-            mochaTestSuite.tests.push(mochaTest2);
-            hermione.emit(hermione.events.ERROR, new Error('err'), beforeHook);
-            assert.equal(suites[0].testcases[0].status, 'broken', 'test should be broken');
-            assert.equal(suites[0].testcases[1].status, 'broken', 'test should be broken');
+            var tree = new Tree()
+                    .beforeHook('beforeHook')
+                    .suite('topSuite')
+                        .test('someTest')
+                        .test('otherTest')
+                        .end();
+
+            hermione.emit(hermione.events.ERROR, new Error('err'), tree.beforeHook);
+
+            assert.equal(suites[0].testcases[0].status, 'broken');
+            assert.equal(suites[0].testcases[1].status, 'broken');
         });
 
-        it('should save correct structure on ERROR after execution', function() {
-            topSuite.parent = rootSuite;
-            hermione.emit(hermione.events.SUITE_BEGIN, topSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest2);
-            hermione.emit(hermione.events.SUITE_END, topSuite);
-            hermione.emit(hermione.events.ERROR, new Error('err'), beforeHook);
-            assert.lengthOf(suites, 2, 'both suites should be saved');
-            assert.lengthOf(suites[0].testcases, 1, 'first test should be saved in first suite');
-            assert.lengthOf(suites[1].testcases, 1, 'second test should be saved in second suite');
-            assert.equal(suites[1].name, 'suite', 'top suite should have common name');
-            assert.equal(suites[1].testcases[0].name, 'test', 'test should have detached name');
-            assert.equal(suites[1].testcases[0].status, 'broken', 'test should be broken');
-            assert.equal(suites[0].name, 'topSuite', 'top suite should have common name');
-            assert.equal(suites[0].testcases[0].name, 'suite2 test2', 'test should have detached name');
-            assert.equal(suites[0].testcases[0].status, 'passed', 'test should be passed');
+        it('should not affect passed suite on ERROR after execution', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .beforeHook('beforeHook')
+                        .test('someTest')
+                        .end()
+                    .suite('otherSuite')
+                        .suite('middleSuite')
+                            .test('otherTest')
+                            .end()
+                        .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.otherSuite);
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.middleSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.otherTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.otherTest);
+            hermione.emit(hermione.events.SUITE_END, tree.middleSuite);
+            hermione.emit(hermione.events.SUITE_END, tree.otherSuite);
+
+            hermione.emit(hermione.events.ERROR, new Error('err'), tree.beforeHook);
+
+            assert.lengthOf(suites, 2);
+
+            assert.equal(suites[1].testcases[0].status, 'broken');
+
+            assert.lengthOf(suites[0].testcases, 1);
+            assert.equal(suites[0].name, 'otherSuite');
+            assert.equal(suites[0].testcases[0].name, 'middleSuite otherTest');
+            assert.equal(suites[0].testcases[0].status, 'passed');
         });
 
-        it('should save correct structure on ERROR during execution', function() {
-            topSuite.parent = rootSuite;
-            hermione.emit(hermione.events.SUITE_BEGIN, topSuite);
-            hermione.emit(hermione.events.ERROR, new Error('err'), beforeHook);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest2);
-            hermione.emit(hermione.events.SUITE_END, topSuite);
-            assert.lengthOf(suites, 2, 'both suites should be saved');
-            assert.lengthOf(suites[0].testcases, 1, 'first test should be saved in first suite');
-            assert.lengthOf(suites[1].testcases, 1, 'second test should be saved in second suite');
-            assert.equal(suites[0].name, 'suite', 'top suite should have common name');
-            assert.equal(suites[0].testcases[0].name, 'test', 'test should have detached name');
-            assert.equal(suites[0].testcases[0].status, 'broken', 'test should be broken');
-            assert.equal(suites[1].name, 'topSuite', 'top suite should have common name');
-            assert.equal(suites[1].testcases[0].name, 'suite2 test2', 'test should have detached name');
-            assert.equal(suites[1].testcases[0].status, 'passed', 'test should be passed');
+        it('should not affect passed suite on ERROR during execution', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .beforeHook('beforeHook')
+                        .test('someTest')
+                        .end()
+                    .suite('otherSuite')
+                        .suite('middleSuite')
+                            .test('otherTest')
+                            .end()
+                        .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.otherSuite);
+            hermione.emit(hermione.events.ERROR, new Error('err'), tree.beforeHook);
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.middleSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.otherTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.otherTest);
+            hermione.emit(hermione.events.SUITE_END, tree.middleSuite);
+            hermione.emit(hermione.events.SUITE_END, tree.otherSuite);
+
+            assert.lengthOf(suites, 2);
+
+            assert.equal(suites[0].testcases[0].status, 'broken');
+
+            assert.lengthOf(suites[1].testcases, 1);
+            assert.equal(suites[1].name, 'otherSuite');
+            assert.equal(suites[1].testcases[0].name, 'middleSuite otherTest');
+            assert.equal(suites[1].testcases[0].status, 'passed');
         });
     });
 
     describe('test', function() {
         it('should be ignored when started without suite', function() {
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest2);
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end();
+
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+
             assert.lengthOf(suites, 0);
         });
 
         it('should not be attached to wrong suite', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest2);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            assert.lengthOf(suites, 1, 'empty suite should be saved');
-            assert.lengthOf(suites[0].testcases, 0, 'suite should not contain any test');
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end()
+                    .suite('otherSuite')
+                    .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.otherSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.otherSuite);
+
+            assert.lengthOf(suites, 1);
+            assert.lengthOf(suites[0].testcases, 0);
         });
 
-        it('should be attached to finished suite', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest2);
-            assert.lengthOf(suites, 1, 'empty suite should be saved');
-            assert.lengthOf(suites[0].testcases, 0, 'suite should not contain any test');
+        it('should not be attached to finished suite', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end()
+                    .suite('otherSuite')
+                    .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.otherSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.otherSuite);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+
+            assert.lengthOf(suites, 1);
+            assert.lengthOf(suites[0].testcases, 0);
         });
 
-        it('should not be duplicated on calling TEST_BEGIN twice with same data', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            commonCaseVerification();
+        it('should not be duplicated on calling TEST_BEGIN twice for one test', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+
+            assert.lengthOf(suites, 1);
+            assert.lengthOf(suites[0].testcases, 1);
+            assert.equal(suites[0].testcases[0].name, 'someTest');
         });
 
-        it('should not be duplicated on calling TEST_PASS twice with same data', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, mochaTestSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, mochaTest);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest);
-            hermione.emit(hermione.events.TEST_PASS, mochaTest);
-            hermione.emit(hermione.events.SUITE_END, mochaTestSuite);
-            commonCaseVerification();
+        it('should not be duplicated on calling TEST_PASS twice for one test', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+
+            assert.lengthOf(suites, 1);
+            assert.lengthOf(suites[0].testcases, 1);
+            assert.equal(suites[0].testcases[0].name, 'someTest');
         });
 
-        it('should save proper structure and have pending status on TEST_PENDING', function() {
-            hermione.emit(hermione.events.SUITE_BEGIN, topSuite);
-            hermione.emit(hermione.events.TEST_PENDING, mochaTest2);
-            hermione.emit(hermione.events.SUITE_END, topSuite);
-            assert.lengthOf(suites, 1, '1 suite should be saved');
-            assert.lengthOf(suites[0].testcases, 1, '1 test should be saved');
-            assert.equal(suites[0].name, 'topSuite', 'top suite should have common name');
-            assert.equal(suites[0].testcases[0].name, 'suite2 test2', 'test and parent suite names should be unbent');
-            assert.equal(suites[0].testcases[0].status, 'pending', 'test should be pending');
+        it('should save whole tree for pending test', function() {
+            var tree = new Tree()
+                    .suite('topSuite')
+                        .suite('middleSuite')
+                            .test('someTest')
+                            .end()
+                        .end();
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.topSuite);
+            hermione.emit(hermione.events.TEST_PENDING, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.topSuite);
+
+            assert.lengthOf(suites, 1);
+            assert.lengthOf(suites[0].testcases, 1);
+            assert.equal(suites[0].name, 'topSuite');
+            assert.equal(suites[0].testcases[0].name, 'middleSuite someTest');
+            assert.equal(suites[0].testcases[0].status, 'pending');
         });
     });
 
     it('should unbend mocha tree structure', function() {
-        hermione.emit(hermione.events.SUITE_BEGIN, topSuite);
-        hermione.emit(hermione.events.TEST_BEGIN, mochaTest2);
-        hermione.emit(hermione.events.TEST_PASS, mochaTest2);
-        hermione.emit(hermione.events.SUITE_END, topSuite);
-        assert.lengthOf(suites, 1, '1 suite should be saved');
-        assert.lengthOf(suites[0].testcases, 1, '1 test should be saved');
-        assert.equal(suites[0].name, 'topSuite', 'top suite should have common name');
-        assert.equal(suites[0].testcases[0].name, 'suite2 test2', 'test and parent suite names should be unbent');
-    });
+        var tree = new Tree()
+                .suite('topSuite')
+                    .suite('middleSuite')
+                        .test('someTest')
+                        .end()
+                    .end();
 
-    function commonCaseVerification() {
-        assert.lengthOf(suites, 1, '1 suite should be saved');
-        assert.lengthOf(suites[0].testcases, 1, '1 test should be saved');
-        assert.equal(suites[0].name, 'suite', 'top suite should have common name');
-        assert.equal(suites[0].testcases[0].name, 'test', 'test should have detached name');
-    }
+        hermione.emit(hermione.events.SUITE_BEGIN, tree.topSuite);
+        hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+        hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+        hermione.emit(hermione.events.SUITE_END, tree.topSuite);
+
+        assert.lengthOf(suites, 1);
+        assert.lengthOf(suites[0].testcases, 1);
+        assert.equal(suites[0].name, 'topSuite');
+        assert.equal(suites[0].testcases[0].name, 'middleSuite someTest');
+    });
 });
