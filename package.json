@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "allure-js-commons": "git://github.com/pazone/allure-js-commons.git#7b54fdb",
+    "inherit": "^2.2.3",
     "lodash": "~3.10.1",
     "mocha": "mochajs/mocha#d5c0abc"
   },

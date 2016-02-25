@@ -36,18 +36,17 @@ describe('Allure reporter', function() {
         sandbox.stub(AllureSuite.prototype, 'write', function() {
             suites.push(this);
         });
+    });
 
+    beforeEach(function() {
         mochaTestSuite.parent = rootSuite;
-        mochaTestSuite.tests.push(mochaTest);
+        mochaTestSuite.tests = [mochaTest];
         mochaTest.parent = mochaTestSuite;
         beforeHook.parent = mochaTestSuite;
 
         mochaTest2.parent = underlyingSuite;
         underlyingSuite.parent = topSuite;
         topSuite.parent = rootSuite2;
-    });
-
-    beforeEach(function() {
         suites = [];
     });
 
@@ -84,16 +83,18 @@ describe('Allure reporter', function() {
             assert.lengthOf(suites, 1, '1 suite should be saved');
         });
 
-        it('should be ignored if it is not top', function() {
+        it('should be ignored if it is not top level suite', function() {
             hermione.emit(hermione.events.SUITE_BEGIN, underlyingSuite);
             hermione.emit(hermione.events.SUITE_END, underlyingSuite);
             assert.lengthOf(suites, 0);
         });
 
         it('should break all nested tests on ERROR', function() {
+            // Прикрепляем второй тест к сьюту
+            mochaTestSuite.tests.push(mochaTest2);
             hermione.emit(hermione.events.ERROR, new Error('err'), beforeHook);
-            commonCaseVerification();
             assert.equal(suites[0].testcases[0].status, 'broken', 'test should be broken');
+            assert.equal(suites[0].testcases[1].status, 'broken', 'test should be broken');
         });
 
         it('should save correct structure on ERROR after execution', function() {
@@ -103,7 +104,6 @@ describe('Allure reporter', function() {
             hermione.emit(hermione.events.TEST_PASS, mochaTest2);
             hermione.emit(hermione.events.SUITE_END, topSuite);
             hermione.emit(hermione.events.ERROR, new Error('err'), beforeHook);
-            //console.log(suites);
             assert.lengthOf(suites, 2, 'both suites should be saved');
             assert.lengthOf(suites[0].testcases, 1, 'first test should be saved in first suite');
             assert.lengthOf(suites[1].testcases, 1, 'second test should be saved in second suite');

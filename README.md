@@ -8,7 +8,7 @@ Provides Allure Report for [Hermione Runner](https://github.com/gemini-testing/h
 
 ```
 plugins: {
-    'gemini': {
+    'allure': {
         targetDir: 'allure-results'
     }
 }
