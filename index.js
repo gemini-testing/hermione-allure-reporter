@@ -16,7 +16,7 @@ module.exports = function(hermione, opts) {
         targetDir = opts.targetDir ? opts.targetDir : 'allure-results';
 
     hermione.on(hermione.events.SUITE_BEGIN, function(suite) {
-        if (!mochaUtils.isTopSuite(suite)) {
+        if (!mochaUtils.isTopEntity(suite)) {
             return;
         }
 
@@ -26,7 +26,7 @@ module.exports = function(hermione, opts) {
     });
 
     hermione.on(hermione.events.SUITE_END, function(suite) {
-        if (!mochaUtils.isTopSuite(suite)) {
+        if (!mochaUtils.isTopEntity(suite)) {
             return;
         }
         var runningSuite = _runningSuites.getSuite(suite.title, suite.browserId);
@@ -55,13 +55,22 @@ module.exports = function(hermione, opts) {
     });
 
     hermione.on(hermione.events.ERROR, function(err, data) {
-        if (data && mochaUtils.isBeforeHook(data)) {
-            var suiteAdapter = new SuiteAdapter(new AllureSuite(data.parent.title), data.browserId);
-            mochaUtils.getAllSuiteTests(data.parent).forEach(function(test) {
+        var breakSuite = function(mochaSuite) {
+            var suiteAdapter = new SuiteAdapter(new AllureSuite(mochaSuite.title), data.browserId);
+            mochaUtils.getAllSuiteTests(mochaSuite).forEach(function(test) {
                 suiteAdapter.addTest(test);
                 suiteAdapter.finishTest(test, ALLURE_STATUS.broken, err);
             });
             suiteAdapter.endSuite(targetDir);
+        };
+
+        if (data && mochaUtils.isBeforeHook(data)) {
+            if (mochaUtils.isTopEntity(data)) {
+                data.parent.suites.forEach(breakSuite);
+            } else {
+                breakSuite(data.parent);
+            }
         }
     });
 };
+
