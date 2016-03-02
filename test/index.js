@@ -148,20 +148,22 @@ describe('Allure reporter', function() {
             assert.equal(suites[0].testcases[0].status, 'passed');
         });
 
-        it('should not affect passed suite on ERROR during execution', function() {
+        // Ошибка в before all bound всегда вылетает раньше всех других событий
+        it('ERROR should not affect passed suites in other tree', function() {
             var tree = new Tree()
-                    .suite('someSuite')
-                        .beforeHook('beforeHook')
-                        .test('someTest')
-                        .end()
                     .suite('otherSuite')
                         .suite('middleSuite')
                             .test('otherTest')
                             .end()
+                        .end(),
+                brokenTree = new Tree()
+                    .beforeHook('beforeHook')
+                    .suite('someSuite')
+                        .test('someTest')
                         .end();
 
             hermione.emit(hermione.events.SUITE_BEGIN, tree.otherSuite);
-            hermione.emit(hermione.events.ERROR, new Error('err'), tree.beforeHook);
+            hermione.emit(hermione.events.ERROR, new Error('err'), brokenTree.beforeHook);
             hermione.emit(hermione.events.SUITE_BEGIN, tree.middleSuite);
             hermione.emit(hermione.events.TEST_BEGIN, tree.otherTest);
             hermione.emit(hermione.events.TEST_PASS, tree.otherTest);
@@ -171,11 +173,9 @@ describe('Allure reporter', function() {
             assert.lengthOf(suites, 2);
 
             assert.equal(suites[0].testcases[0].status, 'broken');
-
-            assert.lengthOf(suites[1].testcases, 1);
+            assert.equal(suites[1].testcases[0].status, 'passed');
             assert.equal(suites[1].name, 'otherSuite');
             assert.equal(suites[1].testcases[0].name, 'middleSuite otherTest');
-            assert.equal(suites[1].testcases[0].status, 'passed');
         });
     });
 

@@ -26,7 +26,7 @@ var Suite = inherit({
     },
 
     beforeHook: function(title) {
-        var hook = new MochaHook('before hook', _.noop);
+        var hook = new MochaHook('before all hook', _.noop);
         return this._addChild(title, hook);
     },
 
