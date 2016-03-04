@@ -2,7 +2,7 @@
 
 var allureReporter = require('../index'),
     EventEmitter = require('events').EventEmitter,
-    AllureSuite = require('allure-js-commons').Suite,
+    writer = require('allure-js-commons/writer'),
     Tree = require('./suite-tree');
 
 describe('Allure reporter', function() {
@@ -20,8 +20,8 @@ describe('Allure reporter', function() {
         initHermione_();
 
         suites = [];
-        sandbox.stub(AllureSuite.prototype, 'write', function() {
-            suites.push(this);
+        sandbox.stub(writer, 'writeSuite', function(dir, suite) {
+            suites.push(suite);
         });
     });
 

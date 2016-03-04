@@ -1,6 +1,6 @@
 'use strict';
 
-var AllureSuite = require('allure-js-commons').Suite,
+var AllureSuite = require('allure-js-commons/beans/suite'),
     mochaUtils = require('./lib/mocha-utils'),
     RunningSuites = require('./lib/running-suites'),
     SuiteAdapter = require('./lib/suite-adapter');
