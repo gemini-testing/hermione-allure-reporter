@@ -21,7 +21,7 @@ module.exports = function(hermione, opts) {
         }
 
         if (!_runningSuites.getSuite(suite.title, suite.browserId)) {
-            _runningSuites.addSuite(new AllureSuite(suite.title), suite.browserId);
+            _runningSuites.addSuite(new AllureSuite(suite.title), suite.browserId, targetDir);
         }
     });
 
@@ -31,7 +31,7 @@ module.exports = function(hermione, opts) {
         }
         var runningSuite = _runningSuites.getSuite(suite.title, suite.browserId);
         if (runningSuite) {
-            runningSuite.endSuite(targetDir);
+            runningSuite.endSuite();
             _runningSuites.removeSuite(suite.title, suite.browserId);
         }
     });
@@ -56,12 +56,12 @@ module.exports = function(hermione, opts) {
 
     hermione.on(hermione.events.ERROR, function(err, data) {
         var breakSuite = function(mochaSuite) {
-            var suiteAdapter = new SuiteAdapter(new AllureSuite(mochaSuite.title), data.browserId);
+            var suiteAdapter = new SuiteAdapter(new AllureSuite(mochaSuite.title), data.browserId, targetDir);
             mochaUtils.getAllSuiteTests(mochaSuite).forEach(function(test) {
                 suiteAdapter.addTest(test);
                 suiteAdapter.finishTest(test, ALLURE_STATUS.broken, err);
             });
-            suiteAdapter.endSuite(targetDir);
+            suiteAdapter.endSuite();
         };
 
         if (data && mochaUtils.isBeforeHook(data)) {
