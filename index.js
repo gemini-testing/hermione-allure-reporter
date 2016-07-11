@@ -15,6 +15,8 @@ module.exports = function(hermione, opts) {
         _runningSuites = new RunningSuites(),
         targetDir = opts.targetDir ? opts.targetDir : 'allure-results';
 
+    hermione.config.screenshotOnReject = true;
+
     hermione.on(hermione.events.SUITE_BEGIN, function(suite) {
         if (!mochaUtils.isTopEntity(suite)) {
             return;
