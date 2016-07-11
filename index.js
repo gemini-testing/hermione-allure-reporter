@@ -36,6 +36,15 @@ module.exports = function(hermione, opts) {
         }
     });
 
+    // handling of cases when `before all` hook fails
+    hermione.on(hermione.events.SUITE_FAIL, function(fail) {
+        var suiteAdapter = new SuiteAdapter(new AllureSuite(fail.parent.title), fail.browserId, targetDir);
+
+        suiteAdapter.addTest(fail);
+        suiteAdapter.finishTest(fail, ALLURE_STATUS.failed, fail.err);
+        suiteAdapter.endSuite();
+    });
+
     hermione.on(hermione.events.TEST_BEGIN, function(test) {
         _runningSuites.startTest(test);
     });
@@ -53,24 +62,4 @@ module.exports = function(hermione, opts) {
         runningSuite.addTest(test);
         runningSuite.finishTest(test, ALLURE_STATUS.pending, {message: 'Test ignored'});
     });
-
-    hermione.on(hermione.events.ERROR, function(err, data) {
-        var breakSuite = function(mochaSuite) {
-            var suiteAdapter = new SuiteAdapter(new AllureSuite(mochaSuite.title), data.browserId, targetDir);
-            mochaUtils.getAllSuiteTests(mochaSuite).forEach(function(test) {
-                suiteAdapter.addTest(test);
-                suiteAdapter.finishTest(test, ALLURE_STATUS.broken, err);
-            });
-            suiteAdapter.endSuite();
-        };
-
-        if (data && mochaUtils.isBeforeHook(data)) {
-            if (mochaUtils.isTopEntity(data)) {
-                data.parent.suites.forEach(breakSuite);
-            } else {
-                breakSuite(data.parent);
-            }
-        }
-    });
 };
-
