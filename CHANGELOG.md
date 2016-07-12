@@ -1,3 +1,7 @@
+## 1.2.1 - 2016-07-12
+
+* Correct fail screenshot handling
+
 ## 1.2.0 - 2016-07-12
 
 * Supported handling of event `SUITE_FAIL` when `before all` hook fails (requires `hermione@>=0.9.0`).
