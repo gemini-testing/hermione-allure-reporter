@@ -2,6 +2,8 @@
 
 Provides Allure Report for [Hermione Runner](https://github.com/gemini-testing/hermione).
 
+Requires `hermione@>=0.9.0`.
+
 ## Install
 
 ```bash

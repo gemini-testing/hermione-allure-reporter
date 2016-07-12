@@ -1,6 +1,6 @@
 {
   "name": "hermione-allure-reporter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Hermione plugin provides functionality of Allure report",
   "main": "index.js",
   "scripts": {
