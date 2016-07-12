@@ -103,79 +103,32 @@ describe('Allure reporter', function() {
             assert.lengthOf(suites, 0);
         });
 
-        it('should break all nested tests on ERROR', function() {
-            var tree = new Tree()
-                    .beforeHook('beforeHook')
-                    .suite('topSuite')
-                        .test('someTest')
-                        .test('otherTest')
-                        .end();
+        describe('`before all` hook fail', function() {
+            var fullTitle = sinon.stub().returns('');
 
-            hermione.emit(hermione.events.ERROR, new Error('err'), tree.beforeHook);
+            it('should be supposed as one test fail', function() {
+                var tree = new Tree().suite('suite').end();
 
-            assert.equal(suites[0].testcases[0].status, 'broken');
-            assert.equal(suites[0].testcases[1].status, 'broken');
-        });
+                hermione.emit(hermione.events.SUITE_FAIL, {fullTitle: fullTitle, parent: tree.suite});
 
-        it('should not affect passed suite on ERROR after execution', function() {
-            var tree = new Tree()
-                    .suite('someSuite')
-                        .beforeHook('beforeHook')
-                        .test('someTest')
-                        .end()
-                    .suite('otherSuite')
-                        .suite('middleSuite')
-                            .test('otherTest')
-                            .end()
-                        .end();
+                assert.lengthOf(suites, 1);
+                assert.lengthOf(suites[0].testcases, 1);
+            });
 
-            hermione.emit(hermione.events.SUITE_BEGIN, tree.otherSuite);
-            hermione.emit(hermione.events.SUITE_BEGIN, tree.middleSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, tree.otherTest);
-            hermione.emit(hermione.events.TEST_PASS, tree.otherTest);
-            hermione.emit(hermione.events.SUITE_END, tree.middleSuite);
-            hermione.emit(hermione.events.SUITE_END, tree.otherSuite);
+            it('should be handled as one test fail', function() {
+                var tree = new Tree().suite('awesomeSuite').end();
 
-            hermione.emit(hermione.events.ERROR, new Error('err'), tree.beforeHook);
+                hermione.emit(hermione.events.SUITE_FAIL, {
+                    fullTitle: fullTitle.returns('"before all" hook failed'),
+                    parent: tree.awesomeSuite,
+                    err: new Error('awesome-error')
+                });
 
-            assert.lengthOf(suites, 2);
-
-            assert.equal(suites[1].testcases[0].status, 'broken');
-
-            assert.lengthOf(suites[0].testcases, 1);
-            assert.equal(suites[0].name, 'otherSuite');
-            assert.equal(suites[0].testcases[0].name, 'middleSuite otherTest');
-            assert.equal(suites[0].testcases[0].status, 'passed');
-        });
-
-        // Ошибка в before all bound всегда вылетает раньше всех других событий
-        it('ERROR should not affect passed suites in other tree', function() {
-            var tree = new Tree()
-                    .suite('otherSuite')
-                        .suite('middleSuite')
-                            .test('otherTest')
-                            .end()
-                        .end(),
-                brokenTree = new Tree()
-                    .beforeHook('beforeHook')
-                    .suite('someSuite')
-                        .test('someTest')
-                        .end();
-
-            hermione.emit(hermione.events.SUITE_BEGIN, tree.otherSuite);
-            hermione.emit(hermione.events.ERROR, new Error('err'), brokenTree.beforeHook);
-            hermione.emit(hermione.events.SUITE_BEGIN, tree.middleSuite);
-            hermione.emit(hermione.events.TEST_BEGIN, tree.otherTest);
-            hermione.emit(hermione.events.TEST_PASS, tree.otherTest);
-            hermione.emit(hermione.events.SUITE_END, tree.middleSuite);
-            hermione.emit(hermione.events.SUITE_END, tree.otherSuite);
-
-            assert.lengthOf(suites, 2);
-
-            assert.equal(suites[0].testcases[0].status, 'broken');
-            assert.equal(suites[1].testcases[0].status, 'passed');
-            assert.equal(suites[1].name, 'otherSuite');
-            assert.equal(suites[1].testcases[0].name, 'middleSuite otherTest');
+                assert.equal(suites[0].name, 'awesomeSuite');
+                assert.equal(suites[0].testcases[0].name, '"before all" hook failed');
+                assert.equal(suites[0].testcases[0].status, 'failed');
+                assert.equal(suites[0].testcases[0].failure.message, 'awesome-error');
+            });
         });
     });
 
