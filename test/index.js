@@ -13,6 +13,8 @@ describe('Allure reporter', function() {
     function initHermione_() {
         hermione = new EventEmitter();
         hermione.events = require('hermione/lib/constants/runner-events');
+        hermione.config = {};
+
         allureReporter(hermione, {targetDir: 'allure-results'});
     }
 
@@ -308,7 +310,7 @@ describe('Allure reporter', function() {
                         .test('someTest')
                         .end();
 
-            tree.someTest.err = {image: 'base64image='};
+            tree.someTest.err = {screenshot: 'base64image='};
             sandbox.stub(writer, 'writeBuffer').returns('attachment.png');
 
             hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
