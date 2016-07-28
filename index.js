@@ -62,6 +62,7 @@ module.exports = function(hermione, opts) {
     hermione.on(hermione.events.TEST_PENDING, function(test) {
         var runningSuite = _runningSuites.getSuiteByTest(test);
         runningSuite.addTest(test);
-        runningSuite.finishTest(test, ALLURE_STATUS.pending, {message: 'Test ignored'});
+        runningSuite.finishTest(test, ALLURE_STATUS.pending,
+            {message: 'Test ignored: ' + mochaUtils.getSkipReason(test)});
     });
 };
