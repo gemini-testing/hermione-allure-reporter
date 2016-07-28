@@ -285,23 +285,64 @@ describe('Allure reporter', function() {
             assert.equal(suites[0].testcases[0].name, 'someTest');
         });
 
-        it('should save whole tree for pending test', function() {
-            var tree = new Tree()
+        describe('pending', function() {
+            var tree;
+
+            beforeEach(function() {
+                tree = new Tree()
                     .suite('topSuite')
                         .suite('middleSuite')
                             .test('someTest')
                             .end()
                         .end();
+            });
 
-            hermione.emit(hermione.events.SUITE_BEGIN, tree.topSuite);
-            hermione.emit(hermione.events.TEST_PENDING, tree.someTest);
-            hermione.emit(hermione.events.SUITE_END, tree.topSuite);
+            function emitPending_() {
+                hermione.emit(hermione.events.SUITE_BEGIN, tree.topSuite);
+                hermione.emit(hermione.events.TEST_PENDING, tree.someTest);
+                hermione.emit(hermione.events.SUITE_END, tree.topSuite);
+            }
 
-            assert.lengthOf(suites, 1);
-            assert.lengthOf(suites[0].testcases, 1);
-            assert.equal(suites[0].name, 'topSuite');
-            assert.equal(suites[0].testcases[0].name, 'middleSuite someTest');
-            assert.equal(suites[0].testcases[0].status, 'pending');
+            it('should save whole tree', function() {
+                emitPending_();
+
+                assert.lengthOf(suites, 1);
+                assert.lengthOf(suites[0].testcases, 1);
+                assert.equal(suites[0].name, 'topSuite');
+                assert.equal(suites[0].testcases[0].name, 'middleSuite someTest');
+                assert.equal(suites[0].testcases[0].status, 'pending');
+            });
+
+            it('should show skip reason', function() {
+                tree.someTest.skipReason = 'some-reason';
+
+                emitPending_();
+
+                assert.equal(
+                    suites[0].testcases[0].failure.message,
+                    'Test ignored: some-reason'
+                );
+            });
+
+            it('should show skip reason if it is set for whole suite', function() {
+                tree.topSuite.skipReason = 'some-reason';
+
+                emitPending_();
+
+                assert.equal(
+                    suites[0].testcases[0].failure.message,
+                    'Test ignored: some-reason'
+                );
+            });
+
+            it('should show default skip reason if no reason set', function() {
+                emitPending_();
+
+                assert.equal(
+                    suites[0].testcases[0].failure.message,
+                    'Test ignored: Unknown reason'
+                );
+            });
         });
 
         it('should add screenshot attachment to failed test', function() {
