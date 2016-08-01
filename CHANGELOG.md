@@ -1,3 +1,7 @@
+## 1.3.0 - 2016-08-01
+
+* Show test case meta info
+
 ## 1.2.1 - 2016-07-12
 
 * Correct fail screenshot handling
