@@ -366,6 +366,54 @@ describe('Allure reporter', function() {
             assert.equal(attachment.source, 'attachment.png');
             assert.equal(attachment.type, 'image/png');
         });
+
+        it('should add meta info to failed test', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end();
+
+            tree.someTest.meta = {
+                url: '/some/url',
+                testId: 'some-id'
+            };
+            sandbox.stub(writer, 'writeBuffer').returns('attachment.png');
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_FAIL, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+
+            var params = suites[0].testcases[0].parameters;
+            assert.includeDeepMembers(params, [
+                {name: 'url', value: '/some/url', kind: 'environment-variable'},
+                {name: 'testId', value: 'some-id', kind: 'environment-variable'}
+            ]);
+        });
+
+        it('should add meta info to passed test', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end();
+
+            tree.someTest.meta = {
+                url: '/some/url',
+                testId: 'some-id'
+            };
+            sandbox.stub(writer, 'writeBuffer').returns('attachment.png');
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+
+            var params = suites[0].testcases[0].parameters;
+            assert.includeDeepMembers(params, [
+                {name: 'url', value: '/some/url', kind: 'environment-variable'},
+                {name: 'testId', value: 'some-id', kind: 'environment-variable'}
+            ]);
+        });
     });
 
     it('should unbend mocha tree structure', function() {
