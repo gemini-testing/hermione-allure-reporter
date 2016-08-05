@@ -1,3 +1,8 @@
+## 1.4.0 - 2016-08-05
+
+* Add issue from skip reason as a label
+* Add testId as a label
+
 ## 1.3.0 - 2016-08-01
 
 * Show test case meta info
