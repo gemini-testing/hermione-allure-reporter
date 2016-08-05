@@ -386,7 +386,7 @@ describe('Allure reporter', function() {
 
             tree.someTest.meta = {
                 url: '/some/url',
-                testId: 'some-id'
+                foo: 'bar'
             };
             sandbox.stub(writer, 'writeBuffer').returns('attachment.png');
 
@@ -398,7 +398,7 @@ describe('Allure reporter', function() {
             var params = suites[0].testcases[0].parameters;
             assert.includeDeepMembers(params, [
                 {name: 'url', value: '/some/url', kind: 'environment-variable'},
-                {name: 'testId', value: 'some-id', kind: 'environment-variable'}
+                {name: 'foo', value: 'bar', kind: 'environment-variable'}
             ]);
         });
 
@@ -410,7 +410,7 @@ describe('Allure reporter', function() {
 
             tree.someTest.meta = {
                 url: '/some/url',
-                testId: 'some-id'
+                foo: 'bar'
             };
             sandbox.stub(writer, 'writeBuffer').returns('attachment.png');
 
@@ -422,8 +422,35 @@ describe('Allure reporter', function() {
             var params = suites[0].testcases[0].parameters;
             assert.includeDeepMembers(params, [
                 {name: 'url', value: '/some/url', kind: 'environment-variable'},
-                {name: 'testId', value: 'some-id', kind: 'environment-variable'}
+                {name: 'foo', value: 'bar', kind: 'environment-variable'}
             ]);
+        });
+
+        it('should add testId meta as a label', function() {
+            var tree = new Tree()
+                    .suite('someSuite')
+                        .test('someTest')
+                        .end();
+
+            tree.someTest.meta = {
+                testId: 'testcase-100500'
+            };
+            sandbox.stub(writer, 'writeBuffer').returns('attachment.png');
+
+            hermione.emit(hermione.events.SUITE_BEGIN, tree.someSuite);
+            hermione.emit(hermione.events.TEST_BEGIN, tree.someTest);
+            hermione.emit(hermione.events.TEST_PASS, tree.someTest);
+            hermione.emit(hermione.events.SUITE_END, tree.someSuite);
+
+            assert.deepEqual(
+                suites[0].testcases[0].labels[0],
+                {name: 'testId', value: 'testcase-100500'}
+            );
+
+            assert.notInclude(
+                suites[0].testcases[0].parameters,
+                {name: 'testId', value: 'testcase-100500', kind: 'environment-variable'}
+            );
         });
     });
 
