@@ -62,7 +62,12 @@ module.exports = function(hermione, opts) {
     hermione.on(hermione.events.TEST_PENDING, function(test) {
         var runningSuite = _runningSuites.getSuiteByTest(test);
         runningSuite.addTest(test);
+
+        const skipReason = mochaUtils.getSkipReason(test);
+        const match = skipReason.match(/https?:\/\/[^\s]+/);
+        const issue = match && match[0];
+
         runningSuite.finishTest(test, ALLURE_STATUS.pending,
-            {message: 'Test ignored: ' + mochaUtils.getSkipReason(test)});
+            {message: `Test ignored: ${skipReason}`, issue});
     });
 };

@@ -343,6 +343,17 @@ describe('Allure reporter', function() {
                     'Test ignored: Unknown reason'
                 );
             });
+
+            it('should attach issue label if there is a link in skip reason', function() {
+                tree.someTest.skipReason = 'Will be fixed in https://som.tracker/TASK-100500 asap';
+
+                emitPending_();
+
+                assert.deepEqual(
+                    suites[0].testcases[0].labels[0],
+                    {name: 'issue', value: 'https://som.tracker/TASK-100500'}
+                );
+            });
         });
 
         it('should add screenshot attachment to failed test', function() {
