@@ -61,6 +61,11 @@ module.exports = function(hermione, opts) {
 
     hermione.on(hermione.events.TEST_PENDING, function(test) {
         var runningSuite = _runningSuites.getSuiteByTest(test);
+
+        if (!runningSuite) {
+            return;
+        }
+
         runningSuite.addTest(test);
 
         const skipReason = mochaUtils.getSkipReason(test);

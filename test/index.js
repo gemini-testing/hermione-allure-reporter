@@ -354,6 +354,12 @@ describe('Allure reporter', function() {
                     {name: 'issue', value: 'https://som.tracker/TASK-100500'}
                 );
             });
+
+            it('should skip event handling outside of suite', function() {
+                hermione.emit(hermione.events.TEST_PENDING, tree.someTest);
+
+                assert.lengthOf(suites, 0);
+            });
         });
 
         it('should add screenshot attachment to failed test', function() {
