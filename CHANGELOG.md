@@ -1,3 +1,7 @@
+## 1.5.0 - 2016-09-30
+
+* Added path to the file in the report
+
 ## 1.4.0 - 2016-08-05
 
 * Add issue from skip reason as a label
