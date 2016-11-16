@@ -13,7 +13,10 @@ describe('Allure reporter', function() {
     function initHermione_() {
         hermione = new EventEmitter();
         hermione.events = require('hermione/lib/constants/runner-events');
-        hermione.config = {};
+        hermione.config = {
+            getBrowserIds: sandbox.stub().returns([]),
+            forBrowser: sandbox.stub({})
+        };
 
         allureReporter(hermione, {targetDir: 'allure-results'});
     }

@@ -15,7 +15,11 @@ module.exports = function(hermione, opts) {
         _runningSuites = new RunningSuites(),
         targetDir = opts.targetDir ? opts.targetDir : 'allure-results';
 
-    hermione.config.screenshotOnReject = true;
+    hermione.config.getBrowserIds().forEach((id) => {
+        const browserConfig = hermione.config.forBrowser(id);
+
+        browserConfig.screenshotOnReject = true;
+    });
 
     hermione.on(hermione.events.SUITE_BEGIN, function(suite) {
         if (!mochaUtils.isTopEntity(suite)) {
