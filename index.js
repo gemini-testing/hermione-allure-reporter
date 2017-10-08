@@ -36,7 +36,7 @@ module.exports = function(hermione, opts) {
             return;
         }
         var runningSuite = _runningSuites.getSuite(suite.title, suite.browserId);
-        if (runningSuite) {
+        if (runningSuite && runningSuite.runningTests.length === 0) {
             runningSuite.endSuite();
             _runningSuites.removeSuite(suite.title, suite.browserId);
         }
