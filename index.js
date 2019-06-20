@@ -9,7 +9,7 @@ module.exports = function(hermione, opts) {
     if (opts.enabled === false) {
         return;
     }
-    
+
     var ALLURE_STATUS = {
             passed: 'passed',
             failed: 'failed',
